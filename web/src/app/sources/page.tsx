@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { sources } from '@/lib/data'
-import { ago, safeHref } from '@/lib/format'
+import { dayAndTime, safeHref } from '@/lib/format'
 import type { SourceStatus } from '@/lib/types'
 
 export const revalidate = 300
@@ -16,16 +16,15 @@ const GROUPS: { category: SourceStatus['category']; title: string; note: string 
   { category: 'releases', title: 'Releases', note: 'New versions of tools many people build on.' },
 ]
 
-function status(source: SourceStatus, now: Date): { text: string; failing: boolean } {
-  if (source.failures === 0 && source.last_ok_at) return { text: `Read ${ago(source.last_ok_at, now)}`, failing: false }
+function status(source: SourceStatus): { text: string; failing: boolean } {
+  if (source.failures === 0 && source.last_ok_at) return { text: `Read ${dayAndTime(source.last_ok_at)}`, failing: false }
   if (!source.last_ok_at) return { text: source.failures > 0 ? 'Could not be read yet' : 'Not read yet', failing: source.failures > 0 }
-  return { text: `Failing; last read ${ago(source.last_ok_at, now)}`, failing: true }
+  return { text: `Failing; last read ${dayAndTime(source.last_ok_at)}`, failing: true }
 }
 
 export default async function Sources() {
   const all = await sources()
-  const now = new Date()
-  const failing = all.filter((source) => status(source, now).failing).length
+  const failing = all.filter((source) => status(source).failing).length
 
   return (
     <main className="page py-10">
@@ -34,7 +33,7 @@ export default async function Sources() {
         The digest reads these {all.length} sources every morning, through their feeds wherever they have one. Only titles, our own summaries and links are
         shown here; the articles stay where they were published.
       </p>
-      {all.length > 0 && <p className={failing > 0 ? 'notice mt-5' : 'quiet mt-3'}>{failing === 0 ? 'All sources could be read on the last run.' : `${failing} of ${all.length} could not be read on the last run.`}</p>}
+      {all.length > 0 && <p className={failing > 0 ? 'notice mt-5' : 'quiet mt-3'}>{failing === 0 ? 'All sources could be read on the last run.' : `${failing} of ${all.length} could not be read on the last run.`} Times are Central European Time.</p>}
 
       {GROUPS.map((group) => {
         const members = all.filter((source) => source.category === group.category)
@@ -45,7 +44,7 @@ export default async function Sources() {
             <p className="quiet pb-2">{group.note}</p>
             <ul className="rows">
               {members.map((source) => {
-                const state = status(source, now)
+                const state = status(source)
                 const href = safeHref(source.site_url)
                 return (
                   <li key={source.id} style={{ gridTemplateColumns: '1fr auto' }}>

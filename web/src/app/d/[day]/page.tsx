@@ -24,5 +24,5 @@ export default async function Day({ params }: Props) {
   if (!isDay(day)) notFound()
   const page = await dayPage(day)
   if (!page) notFound()
-  return <DayView page={page} now={new Date()} />
+  return <DayView page={page} />
 }

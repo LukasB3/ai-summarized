@@ -4,6 +4,7 @@ import { runDaily } from '../src/daily.js'
 import type { RawItem } from '../src/feeds.js'
 import { costOf, Llm } from '../src/llm.js'
 import { SOURCES, type Source } from '../src/sources.js'
+import { dailyRefresh, refreshSite, WAITS, weeklyRefresh } from '../src/site.js'
 import { applyGroups, buildUnits } from '../src/stages/cluster.js'
 import type { Item } from '../src/types.js'
 import { runWeekly } from '../src/weekly.js'
@@ -63,7 +64,7 @@ async function daily(store: MemoryStore, feeds: Record<string, RawItem[] | strin
   const claude = fakeClaude(reply)
   const cfg = config(overrides)
   const llm = new Llm(claude.client, cfg.RUN_BUDGET_USD, () => {})
-  const result = await runDaily(cfg, store, llm, { collect: async () => collected(feeds), article: async () => null, profile: async () => 'Models.', now: () => NOW, log: () => {} })
+  const result = await runDaily(cfg, store, llm, { collect: async () => collected(feeds), article: async () => null, profile: async () => 'Models.', now: () => NOW, log: () => {}, refresh: async () => true })
   return { result, calls: claude.calls, llm }
 }
 
@@ -208,7 +209,7 @@ describe('the weekly review', () => {
     store.stories = [1, 2, 3, 4, 5, 6].map((id) => story(id, id === 6 ? '2026-11-15' : '2026-11-18'))
     const claude = fakeClaude(answers())
     const cfg = config()
-    const result = await runWeekly(cfg, store, new Llm(claude.client, cfg.RUN_BUDGET_USD, () => {}), NOW, () => {})
+    const result = await runWeekly(cfg, store, new Llm(claude.client, cfg.RUN_BUDGET_USD, () => {}), { now: NOW, log: () => {} })
 
     expect(result.status).toBe('ok')
     // Story 6 is from the Sunday before and is not part of this week.
@@ -222,11 +223,66 @@ describe('the weekly review', () => {
     store.stories = [story(1, '2026-11-18')]
     const claude = fakeClaude(answers())
     const cfg = config()
-    const result = await runWeekly(cfg, store, new Llm(claude.client, cfg.RUN_BUDGET_USD, () => {}), NOW, () => {})
+    const result = await runWeekly(cfg, store, new Llm(claude.client, cfg.RUN_BUDGET_USD, () => {}), { now: NOW, log: () => {} })
 
     expect(result.status).toBe('ok')
     expect(store.reviews.size).toBe(0)
     expect(claude.calls).toHaveLength(0)
+  })
+})
+
+describe('refreshing the site after a run', () => {
+  const site = (pages: (url: string, call: number) => { status: number; text: string }) => {
+    const asked: string[] = []
+    const waits: number[] = []
+    return { asked, waits, get: async (url: string) => pages(url, asked.push(url)), wait: async (ms: number) => void waits.push(ms) }
+  }
+
+  it('asks for every page, then waits until the front page shows the day', async () => {
+    // The site answers with the old page three times and with the new one from the fourth request on.
+    let looks = 0
+    const { asked, waits, get, wait } = site((url) => {
+      const front = url === 'https://site.example/'
+      if (front) looks++
+      return { status: 200, text: front && looks >= 4 ? '<time dateTime="2026-11-23">' : '<time dateTime="2026-11-22">' }
+    })
+
+    expect(await refreshSite('https://site.example', dailyRefresh('2026-11-23'), get, wait)).toBe(true)
+    expect(asked.slice(0, 5).sort()).toEqual(['https://site.example/', 'https://site.example/archive', 'https://site.example/d/2026-11-23', 'https://site.example/sitemap.xml', 'https://site.example/sources'])
+    // One look in the first round, then three more until the new day shows.
+    expect(waits).toEqual([8000, 8000, 60_000])
+  })
+
+  it('gives up after the last wait and says so', async () => {
+    const { waits, get, wait } = site(() => ({ status: 200, text: 'old page' }))
+    expect(await refreshSite('https://site.example', dailyRefresh('2026-11-23'), get, wait)).toBe(false)
+    expect(waits).toHaveLength(WAITS.length)
+  })
+
+  it('survives a site that does not answer', async () => {
+    const wait = async () => {}
+    const get = async (): Promise<{ status: number; text: string }> => {
+      throw new Error('network')
+    }
+    expect(await refreshSite('https://site.example', weeklyRefresh('2026-W48'), get, wait)).toBe(false)
+  })
+
+  it('records the outcome in the run and does not ask without a site address', async () => {
+    const store = new MemoryStore()
+    const claude = fakeClaude(answers())
+    const cfg = config({ SITE_URL: 'https://site.example' })
+    const asked: string[] = []
+    const result = await runDaily(cfg, store, new Llm(claude.client, cfg.RUN_BUDGET_USD, () => {}), {
+      collect: async () => collected(MODEL_X), article: async () => null, profile: async () => 'Models.', now: () => NOW, log: () => {},
+      refresh: async (day) => (asked.push(day), false),
+    })
+    // A site that does not confirm is noted; the run itself is fine.
+    expect(result.status).toBe('ok')
+    expect(asked).toEqual([DAY])
+    expect(result.stats).toMatchObject({ site: 'not confirmed' })
+
+    const quiet = await daily(new MemoryStore(), MODEL_X)
+    expect(quiet.result.stats).toMatchObject({ site: 'not asked' })
   })
 })
 

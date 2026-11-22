@@ -2,8 +2,9 @@
 Description=ai-summarized daily digest, every morning
 
 [Timer]
-# After the US news day has ended. The server's clock is UTC; systemd converts.
-OnCalendar=*-*-* 05:30:00 Europe/Berlin
+# After the US news day has ended, shortly before 7 in the morning in Germany.
+# The server's clock is UTC; systemd converts, also across daylight saving time.
+OnCalendar=*-*-* 06:55:00 Europe/Berlin
 # A run missed while the server was off is made up at the next start.
 Persistent=true
 

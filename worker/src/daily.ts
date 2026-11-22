@@ -8,6 +8,7 @@ import { BudgetExceeded, type Llm } from './llm.js'
 import { pool } from './pool.js'
 import { finalScore } from './rank.js'
 import { Robots } from './robots.js'
+import { dailyRefresh, refreshSite, siteGet } from './site.js'
 import { SOURCES, type Source } from './sources.js'
 import { writeBriefing } from './stages/briefing.js'
 import { buildUnits, clusterUnits, type Unit } from './stages/cluster.js'
@@ -28,6 +29,7 @@ export interface DailyStats {
   cluster: { candidates: number; units: number; newGroups: number; repeats: number }
   stories: { written: number; notNews: number; noAnswer: number; leftForLater: number; withArticle: number }
   briefing: 'written' | 'no stories' | 'no answer' | 'skipped'
+  site: 'shows the day' | 'not confirmed' | 'not asked'
 }
 
 export interface RunResult {
@@ -48,6 +50,8 @@ export interface Outside {
   collect: typeof collectAll
   article: (url: string) => Promise<string | null>
   profile: () => Promise<string>
+  // Asks the site to re-render and reports whether it then shows the day.
+  refresh: (day: string) => Promise<boolean>
   now: () => Date
   log: (line: string) => void
 }
@@ -56,6 +60,7 @@ export async function runDaily(cfg: Config, db: Store, llm: Llm, outside: Partia
   const fetchOptions = { userAgent: cfg.USER_AGENT }
   const robots = new Robots(fetchOptions)
   const { collect = collectAll, article: readArticle = (url: string) => fetchArticle(url, robots, fetchOptions), profile: loadProfile = readProfile, now: clock = () => new Date(), log = console.log } = outside
+  const refresh = outside.refresh ?? ((day: string) => refreshSite(cfg.SITE_URL, dailyRefresh(day), siteGet(cfg.USER_AGENT)))
   const day = berlinDay(clock())
   const runId = await db.startRun('daily', day)
   const stats: DailyStats = {
@@ -66,6 +71,7 @@ export async function runDaily(cfg: Config, db: Store, llm: Llm, outside: Partia
     cluster: { candidates: 0, units: 0, newGroups: 0, repeats: 0 },
     stories: { written: 0, notNews: 0, noAnswer: 0, leftForLater: 0, withArticle: 0 },
     briefing: 'skipped',
+    site: 'not asked',
   }
   let status: RunResult['status'] = 'ok'
   let error: string | null = null
@@ -217,6 +223,12 @@ export async function runDaily(cfg: Config, db: Store, llm: Llm, outside: Partia
       }
     }
     log(`briefing ${stats.briefing} stories_today=${today.length}`)
+
+    // 6. Have the site show the new day before the first reader arrives.
+    if (today.length > 0 && cfg.SITE_URL) {
+      stats.site = (await refresh(day)) ? 'shows the day' : 'not confirmed'
+      log(`site ${stats.site}`)
+    }
 
     await db.prune()
     if (capped && status === 'ok') {
