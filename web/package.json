@@ -2,7 +2,7 @@
   "name": "ai-summarized-web",
   "private": true,
   "engines": {
-    "node": ">=22"
+    "node": "22.x"
   },
   "scripts": {
     "dev": "next dev",
