@@ -38,7 +38,7 @@ const DAILY = `You write the opening briefing of a daily AI news digest, for a r
 The user message lists today's stories, the most important first, as numbered entries.
 ${SHARED}
 
-- headline: the day in at most 12 words.
+- headline: the day's main development in at most 9 words. Name one thing, two at most; not a list of everything that happened.
 - overview: 2-3 sentences, at most 70 words: what mattered most today and why. On a quiet day, say that it was quiet.
 - points: 3 to 6 points, the most important first. Each has a title of at most 8 words, a text of 1-2 sentences with at most 45 words, and the numbers of the stories it draws on. Put stories that belong together into one point. With fewer than three stories worth a point, write fewer points.`
 
@@ -46,7 +46,7 @@ const WEEKLY = `You write the weekly review of an AI news digest, for a reader w
 The user message lists the week's most important stories as numbered entries with their day.
 ${SHARED}
 
-- headline: the week in at most 12 words.
+- headline: what the week added up to, in at most 9 words. One thought, not a list of events.
 - overview: 3-4 sentences, at most 110 words: the developments that defined the week and how they connect.
 - themes: 3 to 6 themes, the most important first. Each has a title of at most 8 words, a text of 2-3 sentences with at most 70 words that says what happened across the week and what it means, and the numbers of the stories it draws on.
 - watch: 1-2 sentences, at most 45 words, on what to watch next week, based only on what these stories announce or leave open.`
