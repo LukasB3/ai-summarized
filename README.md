@@ -62,6 +62,20 @@ journalctl -u ai-summarized-digest -n 50  # what the last run did
 
 The two secrets (`ANTHROPIC_API_KEY`, `SUPABASE_SECRET_KEY`) are stored on the server with `ai-summarized-secret <NAME>`, which asks for the value without showing it.
 
+## The site
+
+`web/` is a Next.js app on Vercel. It only reads: pages are rendered on the server from Supabase with the publishable key and rebuilt at most every five minutes. The browser talks to nobody but the site itself: no cookies, no analytics, fonts served from here.
+
+A headline's weight follows its impact score, so a day reads from heavy to light. The category filter works without script.
+
+```bash
+cd web
+npm ci
+npm run dev     # without SUPABASE_URL it shows built-in sample data
+npm test
+npm run typecheck
+```
+
 ## What the site shows
 
 Only a story's title, a summary written for this site, and links to the
