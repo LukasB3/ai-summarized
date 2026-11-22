@@ -39,13 +39,23 @@ export const weekName = (week: string): string => `Week ${Number(week.slice(6))}
 
 export const berlinDay = (now: Date): string => BERLIN.format(now)
 
-// "3 hours ago", "2 days ago"
-export function ago(iso: string, now: Date): string {
-  const minutes = Math.max(0, Math.round((now.getTime() - new Date(iso).getTime()) / 60_000))
-  if (minutes < 90) return minutes <= 1 ? 'just now' : `${minutes} minutes ago`
-  const hours = Math.round(minutes / 60)
-  if (hours < 36) return `${hours} hours ago`
-  return `${Math.round(hours / 24)} days ago`
+// Pages are kept for minutes and sometimes shown older than that, so a moment
+// is given as a clock time, never as "5 minutes ago": that would be wrong for
+// whoever reads the page later. Times are Central European, like the run.
+const CLOCK = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Berlin', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+
+const clockParts = (iso: string): Record<string, string> => Object.fromEntries(CLOCK.formatToParts(new Date(iso)).map((part) => [part.type, part.value]))
+
+// "06:58"
+export function clockTime(iso: string): string {
+  const { hour, minute } = clockParts(iso)
+  return `${hour}:${minute}`
+}
+
+// "22 Nov, 06:58"
+export function dayAndTime(iso: string): string {
+  const { day, month, hour, minute } = clockParts(iso)
+  return `${day} ${month}, ${hour}:${minute}`
 }
 
 // "OpenAI, The Verge and Hacker News"

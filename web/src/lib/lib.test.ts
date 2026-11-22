@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { ago, berlinDay, isDay, isWeek, linkTarget, listing, longDay, mediumDay, monthOf, outletsOf, safeHref, weekName, weekRange } from './format'
+import { berlinDay, clockTime, dayAndTime, isDay, isWeek, linkTarget, listing, longDay, mediumDay, monthOf, outletsOf, safeHref, weekName, weekRange } from './format'
 import { headlineWeight, rank, tierOf } from './rank'
 import type { Story, StoryLink } from './types'
 
@@ -26,13 +26,12 @@ test('dates read the same whatever zone the server is in', () => {
   assert.equal(berlinDay(new Date('2026-11-22T23:30:00Z')), '2026-11-23')
 })
 
-test('ages are given in the unit that fits', () => {
-  const now = new Date('2026-11-22T12:00:00Z')
-  assert.equal(ago('2026-11-22T11:59:30Z', now), 'just now')
-  assert.equal(ago('2026-11-22T11:15:00Z', now), '45 minutes ago')
-  assert.equal(ago('2026-11-22T05:00:00Z', now), '7 hours ago')
-  assert.equal(ago('2026-11-19T12:00:00Z', now), '3 days ago')
-  assert.equal(ago('2026-11-23T12:00:00Z', now), 'just now')
+test('moments are given as Central European clock times, in winter and in summer', () => {
+  assert.equal(clockTime('2026-11-23T05:58:00Z'), '06:58')
+  assert.equal(clockTime('2026-07-01T04:58:00Z'), '06:58')
+  assert.equal(clockTime('2026-11-22T23:05:00Z'), '00:05')
+  assert.equal(dayAndTime('2026-11-23T05:55:10Z'), '23 Nov, 06:55')
+  assert.equal(dayAndTime('2026-11-22T23:05:00Z'), '23 Nov, 00:05')
 })
 
 test('lists read as a sentence', () => {

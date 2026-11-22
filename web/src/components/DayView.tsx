@@ -1,13 +1,14 @@
 import Link from 'next/link'
 import type { DayPage } from '@/lib/data'
-import { ago, longDay, mediumDay } from '@/lib/format'
+import { clockTime, longDay, mediumDay } from '@/lib/format'
 import { rank, type Ranked } from '@/lib/rank'
+import { RUN_TIME } from '@/lib/site'
 import { CATEGORIES, CATEGORY_NAMES, type Category } from '@/lib/types'
 import { StoryItem } from './StoryItem'
 
 // A day: the briefing, then every story in ranked order. `stale` is set on the
 // front page when the newest digest is older than it should be.
-export function DayView({ page, now, stale }: { page: DayPage; now: Date; stale?: boolean }) {
+export function DayView({ page, stale }: { page: DayPage; stale?: boolean }) {
   const { day, digest, stories, previous, next } = page
   const ranked = rank(stories)
   const upper = ranked.filter((entry) => entry.tier !== 'low')
@@ -21,7 +22,7 @@ export function DayView({ page, now, stale }: { page: DayPage; now: Date; stale?
     <main className="page day">
       {stale && (
         <p className="notice mt-6">
-          The newest digest is from {longDay(day)}. A new one is written every morning at 05:30 Central European Time; today&rsquo;s is not here yet.
+          The newest digest is from {longDay(day)}. A new one is written every morning at {RUN_TIME}; today&rsquo;s is not here yet.
         </p>
       )}
 
@@ -49,7 +50,7 @@ export function DayView({ page, now, stale }: { page: DayPage; now: Date; stale?
               </ul>
             )}
             <p className="quiet mt-6">
-              {stories.length} {stories.length === 1 ? 'story' : 'stories'}, chosen from {digest.item_count} new entries. Written {ago(digest.updated_at, now)}.
+              {stories.length} {stories.length === 1 ? 'story' : 'stories'}, chosen from {digest.item_count} new entries. Written at {clockTime(digest.updated_at)} Central European Time.
             </p>
           </>
         ) : (
