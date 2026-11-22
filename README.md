@@ -30,7 +30,7 @@ are marked as major and always shown first.
 
 ## The daily run
 
-`worker/src/daily.ts`, every morning at 05:30 Europe/Berlin:
+`worker/src/daily.ts`, every morning at 06:55 Europe/Berlin:
 
 1. **Collect** every source in `worker/src/sources.ts`. A source that fails is recorded and skipped.
 2. **Triage** each new entry with a small model: AI news or not, and roughly how relevant.
