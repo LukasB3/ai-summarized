@@ -8,6 +8,8 @@ next-env.d.ts
 !.env.example
 .vercel/
 
-# Claude-related files
+# Instructions for coding agents stay out of the repository.
+# `next dev` writes web/AGENTS.md by itself.
 CLAUDE.md
 .claude/
+AGENTS.md
