@@ -21,6 +21,7 @@ export const config = (overrides: Partial<Config> = {}): Config => ({
   WEIGHT_IMPACT: 0.6,
   WEIGHT_FIT: 0.4,
   USER_AGENT: 'test',
+  SITE_URL: '',
   SUPABASE_URL: 'https://example.supabase.co',
   SUPABASE_SECRET_KEY: 'sb_secret_test_test_test_test',
   ANTHROPIC_API_KEY: 'sk-ant-test-test-test-test',

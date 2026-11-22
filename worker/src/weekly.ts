@@ -3,6 +3,7 @@ import { berlinDay, isoWeek } from './day.js'
 import type { RunResult } from './daily.js'
 import type { Store } from './db.js'
 import { BudgetExceeded, type Llm } from './llm.js'
+import { refreshSite, siteGet, weeklyRefresh } from './site.js'
 import { MAX_STORIES_IN_REVIEW, writeReview } from './stages/briefing.js'
 
 // The weekly review: one text about the week (Monday to Sunday) that contains
@@ -11,13 +12,22 @@ import { MAX_STORIES_IN_REVIEW, writeReview } from './stages/briefing.js'
 // Below this there is no week to review.
 const MIN_STORIES = 5
 
-export async function runWeekly(cfg: Config, db: Store, llm: Llm, now: Date = new Date(), log: (line: string) => void = console.log): Promise<RunResult> {
+export interface WeeklyOutside {
+  now: Date
+  log: (line: string) => void
+  refresh: (week: string) => Promise<boolean>
+}
+
+export async function runWeekly(cfg: Config, db: Store, llm: Llm, outside: Partial<WeeklyOutside> = {}): Promise<RunResult> {
+  const { now = new Date(), log = console.log } = outside
+  const refresh = outside.refresh ?? ((week: string) => refreshSite(cfg.SITE_URL, weeklyRefresh(week), siteGet(cfg.USER_AGENT)))
   const day = berlinDay(now)
   const week = isoWeek(day)
   const runId = await db.startRun('weekly', day)
   let status: RunResult['status'] = 'ok'
   let error: string | null = null
   let outcome = 'skipped'
+  let site = 'not asked'
   let storyCount = 0
 
   try {
@@ -30,6 +40,7 @@ export async function runWeekly(cfg: Config, db: Store, llm: Llm, now: Date = ne
       if (review) {
         await db.saveReview(week, review, stories.length, cfg.BRIEFING_MODEL)
         outcome = 'written'
+        if (cfg.SITE_URL) site = (await refresh(week.week)) ? 'shows the week' : 'not confirmed'
       } else {
         outcome = 'no answer'
         status = 'failed'
@@ -41,8 +52,8 @@ export async function runWeekly(cfg: Config, db: Store, llm: Llm, now: Date = ne
     error = problem instanceof Error ? problem.message.slice(0, 500) : 'unknown error'
   }
 
-  const stats = { week: week.week, stories: storyCount, review: outcome, llm: llm.stages }
+  const stats = { week: week.week, stories: storyCount, review: outcome, site, llm: llm.stages }
   await db.finishRun(runId, { status, stats, input_tokens: llm.inputTokens, output_tokens: llm.outputTokens, cost_usd: Number(llm.spentUsd.toFixed(4)), error })
-  log(`weekly ${week.week} review=${outcome} stories=${storyCount} status=${status} cost=$${llm.spentUsd.toFixed(4)}${error ? ` error="${error}"` : ''}`)
+  log(`weekly ${week.week} review=${outcome} site="${site}" stories=${storyCount} status=${status} cost=$${llm.spentUsd.toFixed(4)}${error ? ` error="${error}"` : ''}`)
   return { status, error, stats }
 }

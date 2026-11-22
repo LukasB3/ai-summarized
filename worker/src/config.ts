@@ -20,6 +20,8 @@ const tuning = z.object({
   WEIGHT_IMPACT: z.coerce.number().min(0).max(1).default(0.6),
   WEIGHT_FIT: z.coerce.number().min(0).max(1).default(0.4),
   USER_AGENT: z.string().default('ai-summarized/1.0 (+https://ai-summarized.lukasbossert.com/sources)'),
+  // The site is asked for its pages after a run so it shows the new day. Empty switches that off.
+  SITE_URL: z.string().default('https://ai-summarized.lukasbossert.com'),
 })
 
 const secrets = z.object({
