@@ -28,6 +28,40 @@ are marked as major and always shown first.
 | `supabase/migrations/` | Database schema (Postgres on Supabase) |
 | `infra/` | Server setup, deploy script, systemd units |
 
+## The daily run
+
+`worker/src/daily.ts`, every morning at 05:30 Europe/Berlin:
+
+1. **Collect** every source in `worker/src/sources.ts`. A source that fails is recorded and skipped.
+2. **Triage** each new entry with a small model: AI news or not, and roughly how relevant.
+3. **Cluster** the entries that passed: reports about the same event become one story, and a report that only repeats a published story joins it.
+4. **Summarise and score** each new story with a stronger model, from the reports and the text of the main article.
+5. **Rank** with the formula above.
+6. **Brief**: one text about the day, written from the stored stories.
+
+A run stops asking the model when it has spent its budget (`RUN_BUDGET_USD`, 2 dollars by default) and records that. It can be started again on the same day without writing anything twice. On Sunday evening a second job writes the weekly review.
+
+Text from feeds and articles is untrusted input: the model gets no tools, answers in a fixed schema, and the worker refuses to fetch addresses inside private networks.
+
+## Commands
+
+```bash
+cd worker
+npm ci
+npm test                      # unit tests and whole runs against fakes
+npm run typecheck
+npx tsx src/main.ts collect   # read all sources and print what they hold; no database, no model, no cost
+```
+
+On the server (`infra/provision.sh` once, then `infra/deploy.sh <ref>`):
+
+```bash
+systemctl start ai-summarized-digest     # run now
+journalctl -u ai-summarized-digest -n 50  # what the last run did
+```
+
+The two secrets (`ANTHROPIC_API_KEY`, `SUPABASE_SECRET_KEY`) are stored on the server with `ai-summarized-secret <NAME>`, which asks for the value without showing it.
+
 ## What the site shows
 
 Only a story's title, a summary written for this site, and links to the
