@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { linkTarget, safeHref } from '@/lib/format'
+import { linkTarget, outletsOf, safeHref } from '@/lib/format'
 import { headlineWeight, type Ranked } from '@/lib/rank'
 import { CATEGORY_NAMES } from '@/lib/types'
 import { Meter } from './Meter'
@@ -10,8 +10,9 @@ const MAX_OUTLETS = 8
 export function StoryItem({ ranked, showDay }: { ranked: Ranked; showDay?: string }) {
   const { story, rank, tier } = ranked
   const primary = safeHref(story.links[0]?.url ?? '')
-  const outlets = story.links.slice(0, MAX_OUTLETS)
-  const more = story.links.length - outlets.length
+  const named = outletsOf(story.links)
+  const outlets = named.slice(0, MAX_OUTLETS)
+  const more = named.length - outlets.length
   const style = { '--weight': headlineWeight(story.impact), '--rank': rank } as CSSProperties
 
   return (

@@ -59,5 +59,12 @@ export function listing(names: string[]): string {
 export const linkTarget = (link: StoryLink, all: StoryLink[]): string =>
   link.discussion && all.some((other) => other !== link && other.url === link.url) ? link.discussion : link.url
 
+// One entry per outlet for a story's "Reported by" line: an outlet that wrote
+// twice about the same event is named once, with its first report.
+export function outletsOf(links: StoryLink[]): StoryLink[] {
+  const seen = new Set<string>()
+  return links.filter((link) => !seen.has(link.source) && seen.add(link.source))
+}
+
 // Only web addresses become links, whatever the database holds.
 export const safeHref = (url: string): string | null => (/^https?:\/\//i.test(url) ? url : null)

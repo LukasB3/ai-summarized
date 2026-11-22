@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { ago, berlinDay, isDay, isWeek, linkTarget, listing, longDay, mediumDay, monthOf, safeHref, weekName, weekRange } from './format'
+import { ago, berlinDay, isDay, isWeek, linkTarget, listing, longDay, mediumDay, monthOf, outletsOf, safeHref, weekName, weekRange } from './format'
 import { headlineWeight, rank, tierOf } from './rank'
 import type { Story, StoryLink } from './types'
 
@@ -56,6 +56,12 @@ test('a community post links to its discussion when the article is already liste
   // Alone, the post is the only way to the article.
   assert.equal(linkTarget(post, [post]), 'https://openai.com/x')
   assert.equal(linkTarget(article, [article, post]), 'https://openai.com/x')
+})
+
+test('an outlet with two reports on one event is named once', () => {
+  const link = (source: string, url: string): StoryLink => ({ source, name: source, title: 't', url })
+  const named = outletsOf([link('verge', 'https://a'), link('decoder', 'https://b'), link('decoder', 'https://c'), link('hn', 'https://a')])
+  assert.deepEqual(named.map((entry) => [entry.source, entry.url]), [['verge', 'https://a'], ['decoder', 'https://b'], ['hn', 'https://a']])
 })
 
 test('major stories come first whatever their fit, then everything by score', () => {
