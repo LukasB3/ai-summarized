@@ -1,0 +1,26 @@
+[Unit]
+Description=ai-summarized daily digest
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=aisum
+Group=aisum
+EnvironmentFile=/etc/ai-summarized/worker.env
+WorkingDirectory=/opt/ai-summarized/worker
+ExecStart=/usr/bin/node dist/main.js daily
+# A run takes a few minutes. One that hangs is ended instead of blocking the next day.
+TimeoutStartSec=45min
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectControlGroups=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=

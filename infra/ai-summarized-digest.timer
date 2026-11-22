@@ -1,0 +1,11 @@
+[Unit]
+Description=ai-summarized daily digest, every morning
+
+[Timer]
+# After the US news day has ended. The server's clock is UTC; systemd converts.
+OnCalendar=*-*-* 05:30:00 Europe/Berlin
+# A run missed while the server was off is made up at the next start.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

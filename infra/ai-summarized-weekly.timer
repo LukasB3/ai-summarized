@@ -1,0 +1,10 @@
+[Unit]
+Description=ai-summarized weekly review, Sunday evening
+
+[Timer]
+# Sunday closes the ISO week (Monday to Sunday) the review covers.
+OnCalendar=Sun *-*-* 18:00:00 Europe/Berlin
+Persistent=true
+
+[Install]
+WantedBy=timers.target
